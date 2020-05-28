@@ -17,6 +17,8 @@ LOWER_BOUND = 31000
 # defined upper bound for generating a random number
 UPPER_BOUND = 32000
 
+masterOutputFilename = 'CICIDS2017_Train.csv'
+rawDataPath = '../../data/processed/'
 #
 # Name: getRandomNumber
 # 
@@ -34,11 +36,13 @@ def getRandomNumber(lowerLimit=LOWER_BOUND, upperLimit=UPPER_BOUND):
 #  
 def processFile(dataroot, filename, upperLimit):
     
-    writeToPath = os.path.splitext(filename)[0] + "_train.csv"
+    writeToPath = join(rawDataPath, masterOutputFilename)
     openFile = join(dataroot, filename)
     print("Processing File: {}".format(openFile))
 
-    with open(writeToPath, mode = 'w') as outfile:
+    with open(writeToPath, mode = 'a') as outfile:
+        print("Created Master Training File: {}".format(writeToPath))
+        print("Start Writing to Master Training File...")
         with open(openFile, mode = 'r') as infile:
             reader = csv.reader(infile, delimiter=',')
             rownum = 0
@@ -63,7 +67,7 @@ def processFile(dataroot, filename, upperLimit):
                     outfile.write("\n")
 
                 rownum += 1
-    print("\nFinished Processing File: {}".format(openFile))
+    print("Finished Processing File: {}\n".format(openFile))
 #
 # Name: main
 #
