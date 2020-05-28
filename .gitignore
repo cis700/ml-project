@@ -104,8 +104,8 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# CSV files
-*.csv
+# Pcap CSV files
+*.pcap_ISCX.csv
 
 # Environments
 .env
