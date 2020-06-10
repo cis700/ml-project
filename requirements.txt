@@ -1,0 +1,8 @@
+# Science related packages
+scikit-learn
+numpy
+imblearn
+scipy
+pandas
+matplotlib
+seaborn

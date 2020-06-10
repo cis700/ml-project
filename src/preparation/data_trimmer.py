@@ -3,93 +3,95 @@ from os.path import join
 import pandas as pd
 import random
 import csv
-import math
+import glob
+import numpy as np
+from time import time
+from src.framework.utils.utilities import Utilities
 
-# The reason for this script is to read the records from the CSV files
-# which store large amounts of 'BENIGN' records which we want to trim down to a manageable size (i.e. 25 - 30K).
-# We utilize the Random class to pick an arbitrary count of 'BENIGN' network records we want to trim down to.
-# This will help with the undersampling of the 'BENIGN' records and since we will run an oversampling on the 
-# non 'BENIGN' records during pre-processing, we do not filter out these records at this stage.
+# The reason for this script is to read the records from the 8 CSV files which store large amounts of 'BENIGN'
+# records which we want to trim down to a manageable size (i.e. 25 - 30K) from over 2 million. We utilize the Random
+# class to pick an arbitrary count of 'BENIGN' network records we want to trim down to per file This will help with
+# the under sampling of the 'BENIGN' records and since we will run an oversampling on the non 'BENIGN' records during
+# pre-processing, we do not filter out those records at this stage.
 
 # defined lower bound for generating a random number
-LOWER_BOUND = 31000
+ATTACK_LOWER_BOUND = 10200
+ATTACK_UPPER_BOUND = 10400
 
-# defined upper bound for generating a random number
-UPPER_BOUND = 32000
+BENIGN_LOWER_BOUND = 10200
+BENIGN_UPPER_BOUND = 10400
 
-masterOutputFilename = 'CICIDS2017_Train.csv'
-rawDataPath = '../../data/processed/'
-#
-# Name: getRandomNumber
-# 
-# Description: Returns a random number between a lower bound and upper bound
-#
-def getRandomNumber(lowerLimit=LOWER_BOUND, upperLimit=UPPER_BOUND):
-    return random.randint(
-        lowerLimit,upperLimit)
+masterOutputFilename = 'CICIDS2017_MasterData.csv'
+processedDataPath = 'data/processed/'
+rawDataPath = 'data/raw/'
 
-#
-# Name: processFile
-# 
-# Description: Provided a root folder and filename, we are to create a new file
-# containing a limited amount of 'BENIGN' records in an output file for the preprocessing stage.
-#  
-def processFile(dataroot, filename, upperLimit):
-    
-    writeToPath = join(rawDataPath, masterOutputFilename)
-    openFile = join(dataroot, filename)
-    print("Processing File: {}".format(openFile))
 
-    with open(writeToPath, mode = 'a') as outfile:
-        print("Created Master Training File: {}".format(writeToPath))
-        print("Start Writing to Master Training File...")
-        with open(openFile, mode = 'r') as infile:
-            reader = csv.reader(infile, delimiter=',')
-            rownum = 0
+class DataTrimmer:
+    utils = Utilities
 
-            # get the header information
-            header = next(reader)
+    def __init__(self):
+        pass
 
-            # loop through and print the header information
-            for col in header:   
-                outfile.write(col + ',')
-            outfile.write("\n")
+    #
+    # Name: getRandomNumber
+    #
+    # Description: Returns a random number between a lower bound and upper bound
+    #
+    def get_random_number(self, lower_limit, upper_limit):
+        return random.randint(
+            lower_limit, upper_limit)
 
-            # print the 'BENIGN' records up to the upper limit
-            # and any other non 'BENIGN' records
-            #
-            for row in reader:
-                targetCol = row[-1]
-                if targetCol == "BENIGN" and rownum < upperLimit or targetCol != "BENIGN":
+    def read_data(self):
+        filenames = [i for i in glob.glob(join(rawDataPath, '*.csv'))]
+        print("Combining the following files: \n{}".format(filenames))
+        combined_csv = pd.concat([pd.read_csv(file, dtype=object) for file in filenames], sort=False)
+        return combined_csv
 
-                    for col in row:
-                        outfile.write(col + ',')
-                    outfile.write("\n")
+    #
+    # Name: processFile
+    #
+    # Description: Provided a root folder and filename, we are to create a new file
+    # containing a limited amount of 'BENIGN' records in an output file for the preprocessing stage.
+    #
+    def process_file(self, benign_limit, attack_limit):
+        t0 = time()
+        write_to_path = join(processedDataPath, masterOutputFilename)
 
-                rownum += 1
-    print("Finished Processing File: {}\n".format(openFile))
-#
-# Name: main
-#
-# Description: Main driver for the program
-#
-def main():
-    dataroot = '../../data/raw/'
-    originalMondayFile = 'Monday-WorkingHours.pcap_ISCX.csv'
-    originalTuesdayFile = 'Tuesday-WorkingHours.pcap_ISCX.csv'
-    originalWednesdayFile = 'Wednesday-workingHours.pcap_ISCX.csv'
-    originalThursdayMorningFile = 'Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX.csv'
-    originalThursdayEveningFile = 'Thursday-WorkingHours-Afternoon-Infilteration.pcap_ISCX.csv'
-    originalFridayAfternoonDDos = 'Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv'
-    originalFridayAfternoonPortScan = 'Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv'
+        data = self.read_data()
+        rows, cols = data.shape
 
-    processFile(dataroot, originalMondayFile, getRandomNumber())
-    processFile(dataroot, originalTuesdayFile, getRandomNumber())
-    processFile(dataroot, originalWednesdayFile, getRandomNumber())
-    processFile(dataroot, originalThursdayMorningFile, getRandomNumber())
-    processFile(dataroot, originalThursdayEveningFile, getRandomNumber())
-    processFile(dataroot, originalFridayAfternoonDDos, getRandomNumber())
-    processFile(dataroot, originalFridayAfternoonPortScan, getRandomNumber())
+        print("Combined CSV files contains {} records with {} feature dimension".format(rows, cols))
+        data.rename(columns=lambda x: x.strip(), inplace=True)
 
-if __name__ == "__main__":
-    main()
+        # remove duplicate column
+        data.drop(data.columns[55], axis=1, inplace=True)
+
+        # based on the upper limit for each attack type (i.e. benign or non-benign)
+        # we want to split the data up so that we have a semi-balance for each type
+        #
+        benign_data = data.loc[data['Label'] == 'BENIGN'].head(benign_limit * 8)
+        attack_data = data.loc[data['Label'] != 'BENIGN'].head(attack_limit * 8)
+        attack_data.reindex(np.random.permutation(attack_data.index))
+        data_frames = [benign_data, attack_data]
+        master_data = pd.concat(data_frames)
+        del benign_data
+        del attack_data
+        master_data.to_csv(write_to_path)
+        tt = time() - t0
+
+        print("process_file() took {} seconds".format(self.utils.convert(round(tt, 3))))
+
+    #
+    # Name: main
+    #
+    # Description: Main driver for the program to create a master data file which concatenates
+    # records from 8 CSV files into a single file.
+    #
+    def create_master(self):
+
+        print("Preparing to create CICIDS2017 Combined Data File..")
+        benign_limit = self.get_random_number(BENIGN_LOWER_BOUND, BENIGN_UPPER_BOUND)
+        attack_limit = self.get_random_number(ATTACK_LOWER_BOUND, ATTACK_UPPER_BOUND)
+
+        self.process_file(benign_limit, attack_limit)
+        print("Completed ")
