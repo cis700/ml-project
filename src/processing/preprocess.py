@@ -1,3 +1,5 @@
+# Name: Fanion Newsome, Ademola Adejokun
+
 # import warnings filter
 import os
 import sys
@@ -49,7 +51,7 @@ all_features = [' Destination Port', ' Flow Duration', ' Total Fwd Packets', ' T
                 ' act_data_pkt_fwd', ' min_seg_size_forward', ' Active Mean', ' Active Std', ' Active Max',
                 ' Active Min', ' Idle Mean', ' Idle Std', ' Idle Max', ' Idle Min', ' Label']
 
-__release__ = False
+__release__ = True
 dataset_name = 'CICIDS2017'
 data_root = 'data/processed/'
 dataset_master = '{}_MasterData.csv'.format(dataset_name)
@@ -419,7 +421,7 @@ class PreProcessing:
         # x_train = self.min_max_scale_data(x_train)
 
         # Chose to use Quantile scaling because it faired better
-        # in regards to outliers
+        # in regards to outliers and it had a better performance
         #
         x_train = self.quantile_scale_data(x_train)
         self.feature_importance_analysis(x_train, y_train)
