@@ -8,6 +8,7 @@ import numpy as np
 from time import time
 from src.framework.utils.utilities import Utilities
 
+
 # The reason for this script is to read the records from the 8 CSV files which store large amounts of 'BENIGN'
 # records which we want to trim down to a manageable size (i.e. 25 - 30K) from over 2 million. We utilize the Random
 # class to pick an arbitrary count of 'BENIGN' network records we want to trim down to per file This will help with
@@ -15,11 +16,11 @@ from src.framework.utils.utilities import Utilities
 # pre-processing, we do not filter out those records at this stage.
 
 # defined lower bound for generating a random number
-ATTACK_LOWER_BOUND = 10200
-ATTACK_UPPER_BOUND = 10400
+ATTACK_LOWER_BOUND = 5200
+ATTACK_UPPER_BOUND = 5400
 
-BENIGN_LOWER_BOUND = 10200
-BENIGN_UPPER_BOUND = 10400
+BENIGN_LOWER_BOUND = 5200
+BENIGN_UPPER_BOUND = 5400
 
 masterOutputFilename = 'CICIDS2017_MasterData.csv'
 processedDataPath = 'data/processed/'
